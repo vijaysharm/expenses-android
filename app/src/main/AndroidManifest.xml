@@ -16,6 +16,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:authorities="com.vijaysharma.expenses"
+            android:name="com.vijaysharma.expenses.database.ExpenseProvider"
+            android:exported="false"/>
     </application>
 
 </manifest>
