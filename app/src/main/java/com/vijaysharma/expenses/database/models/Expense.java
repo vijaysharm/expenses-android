@@ -6,7 +6,7 @@ public class Expense {
     public Long _id;
     public String description;
     public String comment;
-    public float amount;
+    public double amount;
     public Date date;
     public String serverId;
 }

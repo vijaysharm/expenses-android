@@ -29,6 +29,8 @@ dependencies {
     compile 'com.squareup.retrofit:retrofit:1.7.1'
     compile 'nl.qbusict:cupboard:2.1.1'
 
+    compile 'com.google.dagger:dagger:2.0-SNAPSHOT'
+    provided 'com.google.dagger:dagger-compiler:2.0-SNAPSHOT'
 //    androidTestCompile 'com.jakewharton.espresso:espresso:1.1-r3'
 //    androidTestCompile 'com.jakewharton.espresso:espresso-support-v4:1.1-r3'
 }

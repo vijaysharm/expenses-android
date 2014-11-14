@@ -8,7 +8,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".ui.MainActivity"
+            android:name="com.vijaysharma.expenses.ui.MainActivity"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -18,9 +18,9 @@
         </activity>
 
         <provider
-            android:authorities="com.vijaysharma.expenses"
             android:name="com.vijaysharma.expenses.database.ExpenseProvider"
-            android:exported="false"/>
+            android:authorities="com.vijaysharma.expenses"
+            android:exported="false" />
     </application>
 
 </manifest>

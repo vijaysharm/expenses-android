@@ -1,16 +1,18 @@
 package com.vijaysharma.expenses.ui;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.vijaysharma.expenses.Constants;
-import com.vijaysharma.expenses.ObserverAdapter;
+import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.R;
+import com.vijaysharma.expenses.features.list.ExpenseListFragment;
+import com.vijaysharma.expenses.features.login.LoginFragment;
 import com.vijaysharma.expenses.service.AuthenticationService;
 
 import rx.subjects.PublishSubject;
@@ -23,11 +25,27 @@ public class MainActivity extends Activity implements LoginFragment.Callback {
         super.onCreate(savedInstanceState);
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-        if (savedInstanceState == null) {
-            getFragmentManager().beginTransaction()
-                    .add(android.R.id.content, LoginFragment.newInstance("vijay"))
-                    .commit();
+        String token = preferences.getString(Constants.TOKEN_KEY, null);
+        if (token == null) {
+            gotoLogin();
         }
+        else {
+            gotoExpense();
+        }
+    }
+
+    private void gotoExpense() {
+        gotoPage(new ExpenseListFragment());
+    }
+
+    private void gotoLogin() {
+        gotoPage(LoginFragment.newInstance("vijay"));
+    }
+
+    private void gotoPage(Fragment fragment) {
+        getFragmentManager().beginTransaction()
+                .replace(android.R.id.content, fragment)
+                .commit();
     }
 
     @Override
@@ -60,11 +78,12 @@ public class MainActivity extends Activity implements LoginFragment.Callback {
                 SharedPreferences.Editor editor = preferences.edit();
                 if ( token == null ) {
                     editor.remove(Constants.TOKEN_KEY);
+                    editor.commit();
                 } else {
                     editor.putString(Constants.TOKEN_KEY, token.getToken());
-                    Log.i("Tag", "Logged in: " + token);
+                    editor.commit();
+                    gotoExpense();
                 }
-                editor.commit();
             }
         });
     }

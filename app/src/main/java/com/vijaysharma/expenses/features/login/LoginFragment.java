@@ -1,4 +1,4 @@
-package com.vijaysharma.expenses.ui;
+package com.vijaysharma.expenses.features.login;
 
 
 import android.app.Activity;
@@ -11,7 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.vijaysharma.expenses.ObserverAdapter;
+import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.R;
 import com.vijaysharma.expenses.misc.Checks;
 import com.vijaysharma.expenses.service.AuthenticationService.Token;

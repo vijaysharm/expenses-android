@@ -1,4 +1,4 @@
-package com.vijaysharma.expenses;
+package com.vijaysharma.expenses.misc;
 
 import rx.Observer;
 
