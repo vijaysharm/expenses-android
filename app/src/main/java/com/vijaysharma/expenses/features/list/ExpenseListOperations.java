@@ -9,22 +9,32 @@ import com.vijaysharma.expenses.service.Service;
 import java.util.List;
 
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
 
 public class ExpenseListOperations {
     private final ExpenseListStorage storage;
+    private final Scheduler dbThread;
+    private final Scheduler mainThread;
+    private final PublishSubject<Throwable> refreshError;
+
     public ExpenseListOperations(Context context) {
         storage = new ExpenseListStorage(context);
+        dbThread = Schedulers.io();
+        mainThread = AndroidSchedulers.mainThread();
+        refreshError = PublishSubject.create();
     }
 
     public Observable<List<Expense>> fetch() {
         return storage
             .read()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
+            .subscribeOn(dbThread)
+            .observeOn(mainThread)
             .toList();
     }
 
@@ -32,20 +42,38 @@ public class ExpenseListOperations {
         return Service.fetch(token)
             .flatMap(flatten())
             .map(dtoToDomain())
-            .observeOn(Schedulers.io())
+            .observeOn(dbThread)
+            .doOnError(publishExceptions())
             .subscribe(storage.save());
+    }
+
+    private Action1<Throwable> publishExceptions() {
+        return new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                // TODO: I shouldn't let the observer have to cast the exception
+                // TODO: and know that we're using retrofit
+                refreshError.onNext(throwable);
+            }
+        };
+    }
+
+    public Observable<Throwable> exception() {
+        // TODO: Merge with exceptions from the DB
+        return refreshError
+            .observeOn(mainThread);
     }
 
     public Observable<Expense> newItem() {
         return storage
             .newItems()
-            .observeOn(AndroidSchedulers.mainThread());
+            .observeOn(mainThread);
     }
 
     public Observable<Expense> updatedItem() {
         return storage
             .updatedItems()
-            .observeOn(AndroidSchedulers.mainThread());
+            .observeOn(mainThread);
     }
 
     private Func1<List<ExpenseService.Expense>, Observable<ExpenseService.Expense>> flatten() {
