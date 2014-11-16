@@ -11,28 +11,24 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.R;
 import com.vijaysharma.expenses.misc.Checks;
+import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.service.AuthenticationService.Token;
-import com.vijaysharma.expenses.service.Service;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
 import rx.android.events.OnClickEvent;
 import rx.android.events.OnTextChangeEvent;
 import rx.android.observables.ViewObservable;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
 import rx.functions.Func2;
-import rx.subjects.PublishSubject;
+import rx.subscriptions.CompositeSubscription;
 
 public class LoginFragment extends Fragment {
     public interface Callback {
-        void subscribe(PublishSubject<Token> token);
+        public void onLoginComplete(Token token);
     }
 
     private static final String USERNAME_KEY = "username";
@@ -42,14 +38,17 @@ public class LoginFragment extends Fragment {
     @InjectView(R.id.login) Button loginButton;
     @InjectView(R.id.error) TextView error;
 
-    private final PublishSubject<Token> token = PublishSubject.create();
     private String username;
-    private Subscription login;
+    private CompositeSubscription subscriptions;
+    private LoginOperations operations;
+    private Callback callback;
+    private ObserverAdapter<Throwable> errors;
+    private ObserverAdapter<Token> login;
 
-    public static LoginFragment newInstance(String param1) {
+    public static LoginFragment newInstance(String username) {
         LoginFragment fragment = new LoginFragment();
         Bundle args = new Bundle();
-        args.putString(USERNAME_KEY, param1);
+        args.putString(USERNAME_KEY, username);
         fragment.setArguments(args);
         return fragment;
     }
@@ -57,9 +56,31 @@ public class LoginFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            username = getArguments().getString(USERNAME_KEY);
-        }
+
+        if (getArguments() != null) { username = getArguments().getString(USERNAME_KEY); }
+        operations = new LoginOperations(getActivity());
+        subscriptions = new CompositeSubscription();
+        login = new ObserverAdapter<Token>() {
+            @Override
+            public void onNext(Token token) {
+                usernameEditText.setEnabled(true);
+                passwordEditText.setEnabled(true);
+                loginButton.setEnabled(true);
+
+                callback.onLoginComplete(token);
+            }
+        };
+        errors = new ObserverAdapter<Throwable>() {
+            @Override
+            public void onNext(Throwable throwable) {
+                usernameEditText.setEnabled(true);
+                passwordEditText.setEnabled(true);
+                loginButton.setEnabled(true);
+
+                error.setVisibility(View.VISIBLE);
+                error.setText("Invalid username or password");
+            }
+        };
     }
 
     @Override
@@ -101,7 +122,7 @@ public class LoginFragment extends Fragment {
             }
         });
 
-        login = ViewObservable.clicks(loginButton)
+        ViewObservable.clicks(loginButton)
             .doOnEach(new ObserverAdapter<OnClickEvent>() {
                 @Override
                 public void onNext(OnClickEvent onClickEvent) {
@@ -110,32 +131,15 @@ public class LoginFragment extends Fragment {
                     loginButton.setEnabled(false);
                     error.setVisibility(View.GONE);
                 }
-            })
-            .flatMap(new Func1<OnClickEvent, Observable<Token>>() {
+            }).subscribe(new ObserverAdapter<OnClickEvent>() {
                 @Override
-                public Observable<Token> call(OnClickEvent onClickEvent) {
-                    return login(
+                public void onNext(OnClickEvent onClickEvent) {
+                    subscriptions.add(operations.doLogin(
                         usernameEditText.getText().toString(),
                         passwordEditText.getText().toString()
-                    );
+                    ));
                 }
-            })
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(token);
-
-        token.subscribe(new ObserverAdapter<Token>() {
-            @Override
-            public void onNext(Token token) {
-                usernameEditText.setEnabled(true);
-                passwordEditText.setEnabled(true);
-                loginButton.setEnabled(true);
-
-                if (token == null) {
-                    error.setVisibility(View.VISIBLE);
-                    error.setText("Invalid username or password");
-                }
-            }
-        });
+            });
 
         return view;
     }
@@ -144,33 +148,26 @@ public class LoginFragment extends Fragment {
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         if (activity instanceof Callback) {
-            Callback callback = (Callback) activity;
-            callback.subscribe(token);
+            callback = (Callback) activity;
         }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        if (login != null) login.unsubscribe();
+        callback = null;
     }
 
-    private static Observable<Token> login(final String username, final String password) {
-        return Observable.create(new Observable.OnSubscribe<Token>() {
-            @Override
-            public void call(final Subscriber<? super Token> subscriber) {
-                Service.login(username, password).subscribe(new ObserverAdapter<Token>() {
-                    @Override
-                    public void onNext(Token token) {
-                        subscriber.onNext(token);
-                    }
+    @Override
+    public void onResume() {
+        super.onResume();
+        subscriptions.add(operations.login().subscribe(login));
+        subscriptions.add(operations.errors().subscribe(errors));
+    }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        subscriber.onNext(null);
-                    }
-                });
-            }
-        });
+    @Override
+    public void onPause() {
+        super.onPause();
+        subscriptions.unsubscribe();
     }
 }

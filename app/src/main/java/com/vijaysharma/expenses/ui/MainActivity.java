@@ -2,6 +2,7 @@ package com.vijaysharma.expenses.ui;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -14,10 +15,7 @@ import com.vijaysharma.expenses.database.models.Expense;
 import com.vijaysharma.expenses.features.edit.EditExpenseFragment;
 import com.vijaysharma.expenses.features.list.ExpenseListFragment;
 import com.vijaysharma.expenses.features.login.LoginFragment;
-import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.service.AuthenticationService;
-
-import rx.subjects.PublishSubject;
 
 public class MainActivity extends Activity
         implements
@@ -71,43 +69,34 @@ public class MainActivity extends Activity
 
     @Override
     public void onExpenseSelect(Expense expense) {
-        gotoPage(EditExpenseFragment.newInstance(expense));
+        gotoPage(EditExpenseFragment.newInstance(expense), true);
     }
 
     @Override
     public void onExpenseAdd() {
-        gotoPage(EditExpenseFragment.newInstance(null));
+        gotoPage(EditExpenseFragment.newInstance(null), true);
     }
 
     @Override
-    public void subscribe(PublishSubject<AuthenticationService.Token> token) {
-        token.subscribe(new ObserverAdapter<AuthenticationService.Token>() {
-            @Override
-            public void onNext(AuthenticationService.Token token) {
-                SharedPreferences.Editor editor = preferences.edit();
-                if ( token == null ) {
-                    editor.remove(Constants.TOKEN_KEY);
-                    editor.commit();
-                } else {
-                    editor.putString(Constants.TOKEN_KEY, token.getToken());
-                    editor.commit();
-                    gotoExpense();
-                }
-            }
-        });
+    public void onLoginComplete(AuthenticationService.Token token) {
+        gotoExpense();
     }
 
     private void gotoExpense() {
-        gotoPage(new ExpenseListFragment());
+        gotoPage(new ExpenseListFragment(), false);
     }
 
     private void gotoLogin() {
-        gotoPage(LoginFragment.newInstance("vijay"));
+        gotoPage(LoginFragment.newInstance("vijay"), false);
     }
 
-    private void gotoPage(Fragment fragment) {
-        getFragmentManager().beginTransaction()
-                .replace(android.R.id.content, fragment)
-                .commit();
+    private void gotoPage(Fragment fragment, boolean push) {
+        FragmentTransaction transaction = getFragmentManager().beginTransaction()
+            .replace(android.R.id.content, fragment);
+
+        if (push)
+            transaction.addToBackStack(null);
+
+        transaction.commit();
     }
 }
