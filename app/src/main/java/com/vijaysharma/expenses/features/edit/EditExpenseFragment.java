@@ -47,7 +47,7 @@ public class EditExpenseFragment extends Fragment {
         EditExpenseFragment fragment = new EditExpenseFragment();
         if ( expense != null ) {
             Bundle args = new Bundle();
-            args.putLong(EXPENSE_ID_PARAM, expense._id);
+            args.putLong(EXPENSE_ID_PARAM, expense.getId());
             fragment.setArguments(args);
         }
 
@@ -69,10 +69,10 @@ public class EditExpenseFragment extends Fragment {
         fetch = new ObserverAdapter<Expense>() {
             @Override
             public void onNext(Expense expense) {
-                comment.setText(expense.comment);
-                description.setText(expense.description);
-                amount.setText(String.valueOf(expense.amount));
-                date.setText(expense.date.toString());
+                comment.setText(expense.getComment());
+                description.setText(expense.getDescription());
+                amount.setText(String.valueOf(expense.getAmount()));
+                date.setText(expense.getDate().toString());
             }
         };
         saved = new ObserverAdapter<Expense>() {
@@ -141,13 +141,15 @@ public class EditExpenseFragment extends Fragment {
         // as you specify a parent activity in AndroidManifest.xml.
         if (item.getItemId() == R.id.save) {
             Expense expense = new Expense();
-            expense.comment = comment.getText().toString();
-            expense.description = description.getText().toString();
-            expense.date = new Date();
-            expense.amount = Double.parseDouble(amount.getText().toString());
+            expense.setComment(comment.getText().toString());
+            expense.setDescription(description.getText().toString());
+            expense.setDate(new Date());
+            expense.setAmount(Double.parseDouble(amount.getText().toString()));
             if (isEditMode()) {
+                expense.setLocalState(Expense.UPDATED);
                 subscriptions.add(operations.update(expenseId, expense));
             } else {
+                expense.setLocalState(Expense.NEW);
                 subscriptions.add(operations.save(expense));
             }
             return true;

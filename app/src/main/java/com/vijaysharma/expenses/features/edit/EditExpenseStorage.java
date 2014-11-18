@@ -60,10 +60,10 @@ public class EditExpenseStorage {
                         subscriber.onNext(findInDbByLocalId(expenseId));
                     } else {
                         ContentValues values = new ContentValues();
-                        values.put("description", expense.description);
-                        values.put("comment", expense.comment);
-                        values.put("date", expense.date.getTime());
-                        values.put("amount", expense.amount);
+                        values.put("description", expense.getDescription());
+                        values.put("comment", expense.getComment());
+                        values.put("date", expense.getDate().getTime());
+                        values.put("amount", expense.getAmount());
                         cupboard()
                             .withDatabase(database.getWritableDatabase())
                             .update(Expense.class, values, "_id = ?", String.valueOf(id));

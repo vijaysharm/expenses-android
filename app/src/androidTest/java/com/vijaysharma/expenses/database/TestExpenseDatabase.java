@@ -42,12 +42,12 @@ public class TestExpenseDatabase extends AndroidTestCase {
         List<Expense> expenses = cupboard().withCursor(cursor).list(Expense.class);
         assertEquals(1, expenses.size());
         Expense actual = expenses.get(0);
-        assertEquals(expense._id, actual._id);
-        assertEquals(expense.serverId, actual.serverId);
-        assertEquals(expense.date, actual.date);
-        assertEquals(expense.amount, actual.amount);
-        assertEquals(expense.comment, actual.comment);
-        assertEquals(expense.description, actual.description);
+        assertEquals(expense.getId(), actual.getId());
+        assertEquals(expense.getServerId(), actual.getServerId());
+        assertEquals(expense.getDate(), actual.getDate());
+        assertEquals(expense.getAmount(), actual.getAmount());
+        assertEquals(expense.getComment(), actual.getComment());
+        assertEquals(expense.getDescription(), actual.getDescription());
 
         cursor.close();
     }
@@ -65,18 +65,24 @@ public class TestExpenseDatabase extends AndroidTestCase {
 
         ContentValues fields = new ContentValues();
         fields.put("description", "a new description");
-        assertTrue("Failed to update the expense with id " + id, 0 < db.update(Expense.class, fields, "serverId = ?", current.serverId));
+        assertTrue(
+            "Failed to update the expense with id " + id,
+            0 < db.update(Expense.class,
+            fields,
+            "serverId = ?",
+            current.getServerId())
+        );
 
         cursor = db.query(Expense.class).getCursor();
         expenses = cupboard().withCursor(cursor).list(Expense.class);
         assertEquals(1, expenses.size());
         Expense actual = expenses.get(0);
-        assertEquals(expense._id, actual._id);
-        assertEquals(expense.serverId, actual.serverId);
-        assertEquals(expense.date, actual.date);
-        assertEquals(expense.amount, actual.amount);
-        assertEquals(expense.comment, actual.comment);
-        assertEquals("a new description", actual.description);
+        assertEquals(expense.getId(), actual.getId());
+        assertEquals(expense.getServerId(), actual.getServerId());
+        assertEquals(expense.getDate(), actual.getDate());
+        assertEquals(expense.getAmount(), actual.getAmount());
+        assertEquals(expense.getComment(), actual.getComment());
+        assertEquals("a new description", actual.getDescription());
     }
 
     public void test_delete_Expense() {
@@ -89,11 +95,13 @@ public class TestExpenseDatabase extends AndroidTestCase {
 
     private Expense create() {
         Expense expense = new Expense();
-        expense.serverId = "545ea2cbf448feda2d788a7d";
-        expense.date = new Date();
-        expense.amount = 10.3f;
-        expense.comment = "Lots of groceries";
-        expense.description = "Groceries";
+        expense.setLocalState(Expense.SYNCHED);
+        expense.setServerId("545ea2cbf448feda2d788a7d");
+        expense.setDate(new Date());
+        expense.setAmount(10.3);
+        expense.setComment("Lots of groceries");
+        expense.setDescription("Groceries");
+
         return expense;
     }
 }

@@ -33,8 +33,12 @@ public class ExpenseListStorage {
         return updatedItems;
     }
 
-    public Observable<Expense> read() {
+    public Observable<Expense> readAll() {
         return Observable.from(fetchFromDb());
+    }
+
+    public Observable<Expense> readByStatus(int... statuses) {
+        return Observable.from(fetchFromDbWithLocalStatus(statuses));
     }
 
     public Observer<? super Expense> save() {
@@ -42,13 +46,13 @@ public class ExpenseListStorage {
             @Override
             public void onNext(Expense expense) {
                 try {
-                    Expense stored = findInDbByServerId(expense.serverId);
+                    Expense stored = findInDbByServerId(expense.getServerId());
                     if ( stored == null ) {
                         storeExpenseInDb(expense);
-                        newItems.onNext(findInDbByServerId(expense.serverId));
+                        newItems.onNext(findInDbByServerId(expense.getServerId()));
                     } else {
                         updateExpenseInDb(expense);
-                        updatedItems.onNext(findInDbByServerId(expense.serverId));
+                        updatedItems.onNext(findInDbByServerId(expense.getServerId()));
                     }
                 } catch (Exception e) {
                     // There was an exception with this item. Oh well..
@@ -65,14 +69,14 @@ public class ExpenseListStorage {
 
     private void updateExpenseInDb(Expense expense) {
         ContentValues values = new ContentValues();
-        values.put("description", expense.description);
-        values.put("comment", expense.comment);
-        values.put("date", expense.date.getTime());
-        values.put("amount", expense.amount);
+        values.put("description", expense.getDescription());
+        values.put("comment", expense.getComment());
+        values.put("date", expense.getDate().getTime());
+        values.put("amount", expense.getAmount());
 
         cupboard()
             .withDatabase(db.getWritableDatabase())
-            .update(Expense.class, values, "serverId = ?", expense.serverId);
+            .update(Expense.class, values, "serverId = ?", expense.getServerId());
     }
 
     private Expense findInDbByServerId(String serverId) {
@@ -81,6 +85,23 @@ public class ExpenseListStorage {
             .query(Expense.class)
             .withSelection("serverId = ?", serverId)
             .get();
+    }
+
+    private QueryResultIterable<Expense> fetchFromDbWithLocalStatus(int... statuses) {
+        StringBuilder selection = new StringBuilder();
+        String[] args = new String[statuses.length];
+        for ( int index = 0; index < statuses.length; index++ ) {
+            if ( index != 0 )
+                selection.append(", ");
+
+            selection.append("status = ?");
+            args[index] = String.valueOf(statuses[index]);
+        }
+
+        return cupboard()
+            .withDatabase(db.getReadableDatabase())
+            .query(Expense.class)
+            .withSelection(selection.toString(), args).query();
     }
 
     private QueryResultIterable<Expense> fetchFromDb() {

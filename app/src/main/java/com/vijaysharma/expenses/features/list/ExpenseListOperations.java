@@ -32,7 +32,7 @@ public class ExpenseListOperations {
 
     public Observable<List<Expense>> fetch() {
         return storage
-            .read()
+            .readAll()
             .subscribeOn(dbThread)
             .observeOn(mainThread)
             .toList();
@@ -46,6 +46,17 @@ public class ExpenseListOperations {
             .doOnError(publishExceptions())
             .subscribe(storage.save());
     }
+
+    /*
+    private void doAll(String token) {
+        storage.readByStatus(Expense.NEW)
+            .flatMap(new Func1<Expense, Observable<?>>() {
+                @Override
+                public Observable<?> call(Expense expense) {
+                    return ;
+                }
+            });
+    }*/
 
     private Action1<Throwable> publishExceptions() {
         return new Action1<Throwable>() {
@@ -90,11 +101,13 @@ public class ExpenseListOperations {
             @Override
             public Expense call(ExpenseService.Expense dto) {
                 Expense model = new Expense();
-                model.serverId = dto.getId();
-                model.description = dto.getDescription();
-                model.comment = dto.getComment();
-                model.amount = dto.getAmount();
-                model.date = dto.getDate();
+                model.setServerId(dto.getId());
+                model.setDescription(dto.getDescription());
+                model.setComment(dto.getComment());
+                model.setAmount(dto.getAmount());
+                model.setDate(dto.getDate());
+                model.setLocalState(Expense.SYNCHED);
+
                 return model;
             }
         };

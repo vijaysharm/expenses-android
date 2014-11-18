@@ -18,9 +18,9 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.vijaysharma.expenses.Constants;
-import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.R;
 import com.vijaysharma.expenses.database.models.Expense;
+import com.vijaysharma.expenses.misc.ObserverAdapter;
 
 import java.util.List;
 
@@ -48,10 +48,6 @@ public class ExpenseListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        ActionBar actionBar = getActivity().getActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(false);
-        actionBar.setHomeButtonEnabled(false);
-        getFragmentManager().invalidateOptionsMenu();
 
         subscriptions = new CompositeSubscription();
         preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
@@ -146,6 +142,12 @@ public class ExpenseListFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        ActionBar actionBar = getActivity().getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(false);
+        actionBar.setHomeButtonEnabled(false);
+        getFragmentManager().invalidateOptionsMenu();
+
         subscriptions.add(operations.fetch().subscribe(fetchItems));
         subscriptions.add(operations.newItem().subscribe(newItem));
         subscriptions.add(operations.updatedItem().subscribe(updatedItem));

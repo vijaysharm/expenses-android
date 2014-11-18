@@ -161,7 +161,7 @@ public class LoginFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        subscriptions.add(operations.login().subscribe(login));
+        subscriptions.add(operations.sucess().subscribe(login));
         subscriptions.add(operations.errors().subscribe(errors));
     }
 

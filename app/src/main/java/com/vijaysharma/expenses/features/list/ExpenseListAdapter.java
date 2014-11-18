@@ -43,7 +43,7 @@ public class ExpenseListAdapter extends ArrayAdapter<Expense> {
         }
 
         Expense item = getItem(position);
-        holder.textView.setText(item.description);
+        holder.textView.setText(item.getDescription());
 
         return convertView;
     }
