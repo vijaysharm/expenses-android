@@ -4,6 +4,8 @@ import android.app.Application;
 
 import com.vijaysharma.expenses.features.login.LoginController;
 import com.vijaysharma.expenses.features.login.LoginOperations;
+import com.vijaysharma.expenses.features.login.LoginService;
+import com.vijaysharma.expenses.features.login.LoginStorage;
 import com.vijaysharma.expenses.misc.ObjectFactory;
 import com.vijaysharma.expenses.misc.ObjectFactory.Factory;
 
@@ -16,11 +18,17 @@ public class ExpenseApplication extends Application {
         super.onCreate();
 
         Map<Class<?>, Object> singletons = new HashMap<Class<?>, Object>();
-        LoginController loginController = new LoginController(new LoginOperations(this.getApplicationContext()));
-        singletons.put(loginController.getClass(), loginController);
+        singletons.put(LoginController.class, createLoginController());
 
         Map<Class<?>, Factory> factories = new HashMap<Class<?>, Factory>();
 
         ObjectFactory.setInstance(new ObjectFactory(singletons, factories));
+    }
+
+    private LoginController createLoginController() {
+        LoginService service = new LoginService(Constants.HOST);
+        LoginStorage storage = new LoginStorage(getApplicationContext());
+        LoginOperations operations = new LoginOperations(service, storage);
+        return new LoginController(operations);
     }
 }

@@ -1,11 +1,8 @@
 package com.vijaysharma.expenses.features.login;
 
-import android.content.Context;
-
 import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.service.AuthenticationService;
 import com.vijaysharma.expenses.service.AuthenticationService.Token;
-import com.vijaysharma.expenses.service.Service;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -17,14 +14,16 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 public class LoginOperations {
+    private final LoginService service;
     private final LoginStorage storage;
     private final PublishSubject<Throwable> errors;
     private final PublishSubject<Token> success;
     private final Scheduler mainThread;
     private final Scheduler networkThread;
 
-    public LoginOperations(Context context) {
-        this.storage = new LoginStorage(context);
+    public LoginOperations(LoginService service, LoginStorage storage) {
+        this.service = service;
+        this.storage = storage;
         this.errors = PublishSubject.create();
         this.success = PublishSubject.create();
         this.mainThread = AndroidSchedulers.mainThread();
@@ -43,25 +42,26 @@ public class LoginOperations {
         return Observable.create(new Observable.OnSubscribe<AuthenticationService.Token>() {
             @Override
             public void call(final Subscriber<? super AuthenticationService.Token> subscriber) {
-                try { Thread.sleep(10000); } catch (Exception e){};
-                Service.login(username, password).subscribe(new ObserverAdapter<AuthenticationService.Token>() {
-                    @Override
-                    public void onNext(AuthenticationService.Token token) {
-                        success.onNext(token);
-                        subscriber.onNext(token);
-                    }
+                service
+                    .login(username, password)
+                    .subscribe(new ObserverAdapter<AuthenticationService.Token>() {
+                        @Override
+                        public void onNext(AuthenticationService.Token token) {
+                            success.onNext(token);
+                            subscriber.onNext(token);
+                        }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        errors.onNext(e);
-                        subscriber.onNext(null);
-                    }
-                });
+                        @Override
+                        public void onError(Throwable e) {
+                            errors.onNext(e);
+                            subscriber.onNext(null);
+                        }
+                    });
             }
         })
         .subscribeOn(networkThread)
-        .observeOn(mainThread)
         .doOnEach(storage.save())
+        .observeOn(mainThread)
         .subscribe(Observers.empty());
     }
 }
