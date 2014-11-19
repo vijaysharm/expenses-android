@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 
+import com.vijaysharma.expenses.Constants;
 import com.vijaysharma.expenses.database.models.Expense;
 import com.vijaysharma.expenses.features.edit.EditExpenseFragment;
 import com.vijaysharma.expenses.features.list.ExpenseListFragment;
@@ -31,13 +32,13 @@ public class MainActivity extends Activity
     protected void onResume() {
         super.onResume();
 
-//        String token = preferences.getString(Constants.TOKEN_KEY, null);
-//        if (token == null) {
+        String token = preferences.getString(Constants.TOKEN_KEY, null);
+        if (token == null) {
             gotoLogin();
-//        }
-//        else {
-//            gotoExpense();
-//        }
+        }
+        else {
+            gotoExpense();
+        }
     }
 
     @Override

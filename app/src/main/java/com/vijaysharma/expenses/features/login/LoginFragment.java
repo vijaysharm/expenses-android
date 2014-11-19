@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import com.vijaysharma.expenses.R;
 import com.vijaysharma.expenses.misc.Checks;
+import com.vijaysharma.expenses.misc.ObjectFactory;
 import com.vijaysharma.expenses.misc.ObserverAdapter;
 import com.vijaysharma.expenses.service.AuthenticationService.Token;
 
@@ -24,9 +25,8 @@ import rx.android.events.OnTextChangeEvent;
 import rx.android.observables.ViewObservable;
 import rx.functions.Func1;
 import rx.functions.Func2;
-import rx.subscriptions.CompositeSubscription;
 
-public class LoginFragment extends Fragment {
+public class LoginFragment extends Fragment implements LoginController.LoginView {
     public interface Callback {
         public void onLoginComplete(Token token);
     }
@@ -39,11 +39,8 @@ public class LoginFragment extends Fragment {
     @InjectView(R.id.error) TextView error;
 
     private String username;
-    private CompositeSubscription subscriptions;
-    private LoginOperations operations;
     private Callback callback;
-    private ObserverAdapter<Throwable> errors;
-    private ObserverAdapter<Token> login;
+    private LoginController controller;
 
     public static LoginFragment newInstance(String username) {
         LoginFragment fragment = new LoginFragment();
@@ -58,29 +55,7 @@ public class LoginFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         if (getArguments() != null) { username = getArguments().getString(USERNAME_KEY); }
-        operations = new LoginOperations(getActivity());
-        subscriptions = new CompositeSubscription();
-        login = new ObserverAdapter<Token>() {
-            @Override
-            public void onNext(Token token) {
-                usernameEditText.setEnabled(true);
-                passwordEditText.setEnabled(true);
-                loginButton.setEnabled(true);
-
-                callback.onLoginComplete(token);
-            }
-        };
-        errors = new ObserverAdapter<Throwable>() {
-            @Override
-            public void onNext(Throwable throwable) {
-                usernameEditText.setEnabled(true);
-                passwordEditText.setEnabled(true);
-                loginButton.setEnabled(true);
-
-                error.setVisibility(View.VISIBLE);
-                error.setText("Invalid username or password");
-            }
-        };
+        controller = ObjectFactory.getInstance().singleton(LoginController.class);
     }
 
     @Override
@@ -134,10 +109,10 @@ public class LoginFragment extends Fragment {
             }).subscribe(new ObserverAdapter<OnClickEvent>() {
                 @Override
                 public void onNext(OnClickEvent onClickEvent) {
-                    subscriptions.add(operations.doLogin(
+                    controller.login(
                         usernameEditText.getText().toString(),
                         passwordEditText.getText().toString()
-                    ));
+                    );
                 }
             });
 
@@ -161,13 +136,53 @@ public class LoginFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        subscriptions.add(operations.sucess().subscribe(login));
-        subscriptions.add(operations.errors().subscribe(errors));
+        controller.attach(this);
+
+        usernameEditText.setEnabled(true);
+        passwordEditText.setEnabled(true);
+        loginButton.setEnabled(true);
+
+        if (controller.isLoggingIn()) {
+            usernameEditText.setEnabled(false);
+            passwordEditText.setEnabled(false);
+            loginButton.setEnabled(false);
+            error.setVisibility(View.GONE);
+        }
+
+        if(controller.didLoginFail()) {
+            usernameEditText.setEnabled(true);
+            passwordEditText.setEnabled(true);
+            loginButton.setEnabled(true);
+
+            error.setVisibility(View.VISIBLE);
+            error.setText("Login Failed");
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        subscriptions.unsubscribe();
+        controller.detach(this);
+    }
+
+    @Override
+    public void onLoginSuccess(Token token) {
+        usernameEditText.setEnabled(true);
+        passwordEditText.setEnabled(true);
+        loginButton.setEnabled(true);
+
+        if ( callback != null ) {
+            callback.onLoginComplete(token);
+        }
+    }
+
+    @Override
+    public void onLoginFail(String reason) {
+        usernameEditText.setEnabled(true);
+        passwordEditText.setEnabled(true);
+        loginButton.setEnabled(true);
+
+        error.setVisibility(View.VISIBLE);
+        error.setText(reason);
     }
 }
