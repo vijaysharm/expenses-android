@@ -1,8 +1,6 @@
 package com.vijaysharma.expenses.features.login;
 
-import android.content.Context;
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 
 import com.vijaysharma.expenses.Constants;
 import com.vijaysharma.expenses.misc.ObserverAdapter;
@@ -12,8 +10,8 @@ import rx.Observer;
 
 public class LoginStorage {
     private final SharedPreferences preferences;
-    public LoginStorage(Context context) {
-        preferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
+    public LoginStorage(SharedPreferences preferences) {
+        this.preferences = preferences;
     }
 
     public Observer<Token> save() {
