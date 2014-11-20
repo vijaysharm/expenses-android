@@ -1,11 +1,13 @@
 package com.vijaysharma.expenses.features.list;
 
 import android.content.ContentValues;
-import android.content.Context;
+import android.content.SharedPreferences;
+import android.util.Log;
 
-import com.vijaysharma.expenses.misc.ObserverAdapter;
+import com.vijaysharma.expenses.Constants;
 import com.vijaysharma.expenses.database.ExpenseDatabase;
 import com.vijaysharma.expenses.database.models.Expense;
+import com.vijaysharma.expenses.misc.ObserverAdapter;
 
 import nl.qbusict.cupboard.QueryResultIterable;
 import rx.Observable;
@@ -18,11 +20,13 @@ public class ExpenseListStorage {
     private final ExpenseDatabase db;
     private final PublishSubject<Expense> newItems;
     private final PublishSubject<Expense> updatedItems;
+    private final SharedPreferences preferences;
 
-    public ExpenseListStorage(Context context) {
-        db = new ExpenseDatabase(context);
-        newItems = PublishSubject.create();
-        updatedItems = PublishSubject.create();
+    public ExpenseListStorage(ExpenseDatabase database, SharedPreferences preferences) {
+        this.db = database;
+        this.preferences = preferences;
+        this.newItems = PublishSubject.create();
+        this.updatedItems = PublishSubject.create();
     }
 
     public PublishSubject<Expense> newItems() {
@@ -56,6 +60,7 @@ public class ExpenseListStorage {
                     }
                 } catch (Exception e) {
                     // There was an exception with this item. Oh well..
+                    Log.e("ExpenseListStorage", "Failed to add expense " + expense, e);
                 }
             }
         };
@@ -109,5 +114,9 @@ public class ExpenseListStorage {
             .withDatabase(db.getReadableDatabase())
             .query(Expense.class)
             .query();
+    }
+
+    public Observable<String> getToken() {
+        return Observable.just(preferences.getString(Constants.TOKEN_KEY, null));
     }
 }

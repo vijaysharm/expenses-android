@@ -21,12 +21,16 @@ public class LoginOperations {
     private final Scheduler mainThread;
     private final Scheduler networkThread;
 
-    public LoginOperations(LoginService service, LoginStorage storage) {
+    public LoginOperations(
+        LoginService service,
+        LoginStorage storage,
+        Scheduler mainThread
+    ) {
         this.service = service;
         this.storage = storage;
         this.errors = PublishSubject.create();
         this.success = PublishSubject.create();
-        this.mainThread = AndroidSchedulers.mainThread();
+        this.mainThread = mainThread;
         this.networkThread = Schedulers.io();
     }
 

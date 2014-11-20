@@ -3,10 +3,7 @@ package com.vijaysharma.expenses.features.list;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -17,16 +14,13 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.vijaysharma.expenses.Constants;
 import com.vijaysharma.expenses.R;
 import com.vijaysharma.expenses.database.models.Expense;
-import com.vijaysharma.expenses.misc.ObserverAdapter;
+import com.vijaysharma.expenses.misc.ObjectFactory;
 
 import java.util.List;
 
-import rx.subscriptions.CompositeSubscription;
-
-public class ExpenseListFragment extends Fragment {
+public class ExpenseListFragment extends Fragment implements ExpenseListController.ExpenseListView {
     public interface Callback {
         public void onExpenseSelect(Expense expense);
         public void onExpenseAdd();
@@ -34,53 +28,15 @@ public class ExpenseListFragment extends Fragment {
 
     private Callback mListener;
     private ExpenseListAdapter adapter;
-    private SharedPreferences preferences;
-    private ExpenseListOperations operations;
-
-    private ObserverAdapter<List<Expense>> fetchItems;
-    private ObserverAdapter<Expense> newItem;
-    private ObserverAdapter<Expense> updatedItem;
-    private ObserverAdapter<Throwable> errors;
-
-    private CompositeSubscription subscriptions;
+    private ExpenseListController controller;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
 
-        subscriptions = new CompositeSubscription();
-        preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
-        operations = new ExpenseListOperations(getActivity());
+        controller = ObjectFactory.singleton(ExpenseListController.class);
         adapter = new ExpenseListAdapter(getActivity());
-        fetchItems = new ObserverAdapter<List<Expense>>() {
-            @Override
-            public void onNext(List<Expense> expenses) {
-                Log.d("TAG", "All Expenses: " + expenses);
-                adapter.clear();
-                adapter.addAll(expenses);
-            }
-        };
-        newItem = new ObserverAdapter<Expense>() {
-            @Override
-            public void onNext(Expense expense) {
-                Log.d("TAG", "Added Expense: " + expense);
-                adapter.add(expense);
-            }
-        };
-        updatedItem = new ObserverAdapter<Expense>() {
-            @Override
-            public void onNext(Expense expense) {
-                Log.d("TAG", "Updated Expense: " + expense);
-                subscriptions.add(operations.fetch().subscribe(fetchItems));
-            }
-        };
-        errors = new ObserverAdapter<Throwable>() {
-            @Override
-            public void onNext(Throwable throwable) {
-                Toast.makeText(getActivity(), "Failed to get new things...", Toast.LENGTH_SHORT).show();
-            }
-        };
     }
 
     @Override
@@ -94,13 +50,14 @@ public class ExpenseListFragment extends Fragment {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         if (item.getItemId() == R.id.refresh) {
-            String token = preferences.getString(Constants.TOKEN_KEY, null);
-            subscriptions.add(operations.refresh(token));
+            controller.refresh();
             return true;
         }
 
         if (item.getItemId() == R.id.add) {
-            if (mListener != null) mListener.onExpenseAdd();
+            if (mListener != null) {
+                mListener.onExpenseAdd();
+            }
             return true;
         }
 
@@ -148,15 +105,29 @@ public class ExpenseListFragment extends Fragment {
         actionBar.setHomeButtonEnabled(false);
         getFragmentManager().invalidateOptionsMenu();
 
-        subscriptions.add(operations.fetch().subscribe(fetchItems));
-        subscriptions.add(operations.newItem().subscribe(newItem));
-        subscriptions.add(operations.updatedItem().subscribe(updatedItem));
-        subscriptions.add(operations.exception().subscribe(errors));
+        controller.attach(this);
+        controller.fetch();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        subscriptions.unsubscribe();
+        controller.detach(this);
+    }
+
+    @Override
+    public void showError() {
+        Toast.makeText(getActivity(), "Failed to get new things...", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void add(Expense expense) {
+        adapter.add(expense);
+    }
+
+    @Override
+    public void refresh(List<Expense> expenses) {
+        adapter.clear();
+        adapter.addAll(expenses);
     }
 }

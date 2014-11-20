@@ -55,7 +55,7 @@ public class LoginFragment extends Fragment implements LoginController.LoginView
         super.onCreate(savedInstanceState);
 
         if (getArguments() != null) { username = getArguments().getString(USERNAME_KEY); }
-        controller = ObjectFactory.getInstance().singleton(LoginController.class);
+        controller = ObjectFactory.singleton(LoginController.class);
     }
 
     @Override

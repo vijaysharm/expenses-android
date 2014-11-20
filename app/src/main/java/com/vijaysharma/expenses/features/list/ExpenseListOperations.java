@@ -1,33 +1,36 @@
 package com.vijaysharma.expenses.features.list;
 
-import android.content.Context;
-
 import com.vijaysharma.expenses.database.models.Expense;
 import com.vijaysharma.expenses.service.ExpenseService;
-import com.vijaysharma.expenses.service.Service;
 
 import java.util.List;
 
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.observers.Observers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 public class ExpenseListOperations {
     private final ExpenseListStorage storage;
+    private final ExpenseListService service;
     private final Scheduler dbThread;
     private final Scheduler mainThread;
     private final PublishSubject<Throwable> refreshError;
 
-    public ExpenseListOperations(Context context) {
-        storage = new ExpenseListStorage(context);
-        dbThread = Schedulers.io();
-        mainThread = AndroidSchedulers.mainThread();
-        refreshError = PublishSubject.create();
+    public ExpenseListOperations(
+        ExpenseListStorage storage,
+        ExpenseListService service,
+        Scheduler mainThread
+    ) {
+        this.storage = storage;
+        this.service = service;
+        this.dbThread = Schedulers.io();
+        this.mainThread = mainThread;
+        this.refreshError = PublishSubject.create();
     }
 
     public Observable<List<Expense>> fetch() {
@@ -39,12 +42,13 @@ public class ExpenseListOperations {
     }
 
     public Subscription refresh(String token) {
-        return Service.fetch(token)
+        return service.fetch(token)
+            .observeOn(dbThread)
             .flatMap(flatten())
             .map(dtoToDomain())
-            .observeOn(dbThread)
             .doOnError(publishExceptions())
-            .subscribe(storage.save());
+            .doOnEach(storage.save())
+            .subscribe(Observers.empty());
     }
 
     /*
@@ -113,4 +117,7 @@ public class ExpenseListOperations {
         };
     }
 
+    public Observable<String> getToken() {
+        return storage.getToken();
+    }
 }

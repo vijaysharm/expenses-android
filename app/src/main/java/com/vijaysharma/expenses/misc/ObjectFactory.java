@@ -9,10 +9,6 @@ public class ObjectFactory {
 
     private static ObjectFactory INSTANCE;
 
-    public static ObjectFactory getInstance() {
-        return INSTANCE;
-    }
-
     public static void setInstance(ObjectFactory factory) {
         INSTANCE = factory;
     }
@@ -25,11 +21,11 @@ public class ObjectFactory {
         this.factories = factories;
     }
 
-    public <T> T singleton(Class<T> clazz) {
-        return (T) singletons.get(clazz);
+    public static <T> T singleton(Class<T> clazz) {
+        return (T) INSTANCE.singletons.get(clazz);
     }
 
-    public <T> T instance(Class<T> clazz) {
-        return factories.get(clazz).create(this);
+    public static <T> T create(Class<T> clazz) {
+        return INSTANCE.factories.get(clazz).create(INSTANCE);
     }
 }
