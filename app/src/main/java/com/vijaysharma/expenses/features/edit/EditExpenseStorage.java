@@ -1,7 +1,6 @@
 package com.vijaysharma.expenses.features.edit;
 
 import android.content.ContentValues;
-import android.content.Context;
 
 import com.vijaysharma.expenses.database.ExpenseDatabase;
 import com.vijaysharma.expenses.database.models.Expense;
@@ -17,9 +16,9 @@ public class EditExpenseStorage {
     private final ExpenseDatabase database;
     private final PublishSubject<Expense> saved;
 
-    public EditExpenseStorage(Context context) {
-        database = new ExpenseDatabase(context);
-        saved = PublishSubject.create();
+    public EditExpenseStorage(ExpenseDatabase database) {
+        this.database = database;
+        this.saved = PublishSubject.create();
     }
 
     public Observable<Expense> find(long expenseId) {

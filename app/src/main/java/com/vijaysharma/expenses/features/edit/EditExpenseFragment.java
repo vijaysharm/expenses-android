@@ -15,15 +15,14 @@ import android.widget.Toast;
 
 import com.vijaysharma.expenses.R;
 import com.vijaysharma.expenses.database.models.Expense;
-import com.vijaysharma.expenses.misc.ObserverAdapter;
+import com.vijaysharma.expenses.misc.ObjectFactory;
 
 import java.util.Date;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
-import rx.subscriptions.CompositeSubscription;
 
-public class EditExpenseFragment extends Fragment {
+public class EditExpenseFragment extends Fragment implements EditExpenseController.EditExpenseView {
     public interface Callback {
         public void onEditingComplete();
     }
@@ -35,13 +34,9 @@ public class EditExpenseFragment extends Fragment {
     @InjectView(R.id.description) EditText description;
     @InjectView(R.id.date) EditText date;
 
-    private EditExpenseOperations operations;
     private long expenseId;
     private Callback callback;
-    private CompositeSubscription subscriptions;
-    private ObserverAdapter<Expense> fetch;
-    private ObserverAdapter<Throwable> errors;
-    private ObserverAdapter<Expense> saved;
+    private EditExpenseController controller;
 
     public static EditExpenseFragment newInstance(Expense expense) {
         EditExpenseFragment fragment = new EditExpenseFragment();
@@ -57,36 +52,17 @@ public class EditExpenseFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        controller = ObjectFactory.singleton(EditExpenseController.class);
+
         setHasOptionsMenu(true);
         ActionBar actionBar = getActivity().getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setHomeButtonEnabled(true);
         getFragmentManager().invalidateOptionsMenu();
 
-        if (getArguments() != null) { expenseId = getArguments().getLong(EXPENSE_ID_PARAM); }
-        operations = new EditExpenseOperations(getActivity());
-        subscriptions = new CompositeSubscription();
-        fetch = new ObserverAdapter<Expense>() {
-            @Override
-            public void onNext(Expense expense) {
-                comment.setText(expense.getComment());
-                description.setText(expense.getDescription());
-                amount.setText(String.valueOf(expense.getAmount()));
-                date.setText(expense.getDate().toString());
-            }
-        };
-        saved = new ObserverAdapter<Expense>() {
-            @Override
-            public void onNext(Expense expense) {
-                if ( callback != null ) callback.onEditingComplete();
-            }
-        };
-        errors = new ObserverAdapter<Throwable>() {
-            @Override
-            public void onNext(Throwable throwable) {
-                Toast.makeText(getActivity(), "Failed to save expense", Toast.LENGTH_SHORT);
-            }
-        };
+        if (getArguments() != null) {
+            expenseId = getArguments().getLong(EXPENSE_ID_PARAM);
+        }
     }
 
     @Override
@@ -118,15 +94,14 @@ public class EditExpenseFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (isEditMode()) subscriptions.add(operations.fetch(expenseId).subscribe(fetch));
-        subscriptions.add(operations.saved().subscribe(saved));
-        subscriptions.add(operations.errors().subscribe(errors));
+        controller.attach(this);
+        controller.fetch(expenseId);
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        subscriptions.unsubscribe();
+        controller.detach(this);
     }
 
     @Override
@@ -145,25 +120,36 @@ public class EditExpenseFragment extends Fragment {
             expense.setDescription(description.getText().toString());
             expense.setDate(new Date());
             expense.setAmount(Double.parseDouble(amount.getText().toString()));
-            if (isEditMode()) {
-                expense.setLocalState(Expense.UPDATED);
-                subscriptions.add(operations.update(expenseId, expense));
-            } else {
-                expense.setLocalState(Expense.NEW);
-                subscriptions.add(operations.save(expense));
-            }
+            controller.save(expenseId, expense);
+
             return true;
         }
 
         if (item.getItemId() == android.R.id.home) {
-            if ( callback != null ) callback.onEditingComplete();
+            done();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    public boolean isEditMode() {
-        return expenseId != 0L;
+    @Override
+    public void done() {
+        if ( callback != null ) {
+            callback.onEditingComplete();
+        }
+    }
+
+    @Override
+    public void showExpense(Expense expense) {
+        comment.setText(expense.getComment());
+        description.setText(expense.getDescription());
+        amount.setText(String.valueOf(expense.getAmount()));
+        date.setText(expense.getDate().toString());
+    }
+
+    @Override
+    public void showError(String reason) {
+        Toast.makeText(getActivity(), reason, Toast.LENGTH_SHORT);
     }
 }

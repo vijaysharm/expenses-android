@@ -1,13 +1,10 @@
 package com.vijaysharma.expenses.features.edit;
 
-import android.content.Context;
-
 import com.vijaysharma.expenses.database.models.Expense;
 
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
@@ -18,11 +15,11 @@ public class EditExpenseOperations {
     private final Scheduler mainThread;
     private final PublishSubject<Throwable> errors;
 
-    public EditExpenseOperations(Context context) {
-        storage = new EditExpenseStorage(context);
-        dbThread = Schedulers.io();
-        mainThread = AndroidSchedulers.mainThread();
-        errors = PublishSubject.create();
+    public EditExpenseOperations(EditExpenseStorage storage, Scheduler mainThread) {
+        this.storage = storage;
+        this.dbThread = Schedulers.io();
+        this.mainThread = mainThread;
+        this.errors = PublishSubject.create();
     }
 
     public Observable<Expense> fetch(long expenseId) {

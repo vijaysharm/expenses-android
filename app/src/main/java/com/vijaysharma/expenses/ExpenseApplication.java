@@ -6,6 +6,9 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 import com.vijaysharma.expenses.database.ExpenseDatabase;
+import com.vijaysharma.expenses.features.edit.EditExpenseController;
+import com.vijaysharma.expenses.features.edit.EditExpenseOperations;
+import com.vijaysharma.expenses.features.edit.EditExpenseStorage;
 import com.vijaysharma.expenses.features.list.ExpenseListController;
 import com.vijaysharma.expenses.features.list.ExpenseListOperations;
 import com.vijaysharma.expenses.features.list.ExpenseListService;
@@ -34,6 +37,7 @@ public class ExpenseApplication extends Application {
         Map<Class<?>, Object> singletons = new HashMap<Class<?>, Object>();
         singletons.put(LoginController.class, createLoginController(host, preferences));
         singletons.put(ExpenseListController.class, createExpenseListController(host, context, preferences));
+        singletons.put(EditExpenseController.class, createEditExpenseController(context, preferences));
 
         Map<Class<?>, Factory> factories = new HashMap<Class<?>, Factory>();
 
@@ -44,6 +48,7 @@ public class ExpenseApplication extends Application {
         LoginService service = new LoginService(host);
         LoginStorage storage = new LoginStorage(preferences);
         LoginOperations operations = new LoginOperations(service, storage, AndroidSchedulers.mainThread());
+
         return new LoginController(operations);
     }
 
@@ -54,5 +59,13 @@ public class ExpenseApplication extends Application {
         ExpenseListOperations operations = new ExpenseListOperations(storage, service, AndroidSchedulers.mainThread());
 
         return new ExpenseListController(operations);
+    }
+
+    private EditExpenseController createEditExpenseController(Context context, SharedPreferences preferences) {
+        ExpenseDatabase database = new ExpenseDatabase(context);
+        EditExpenseStorage storage = new EditExpenseStorage(database);
+        EditExpenseOperations operations = new EditExpenseOperations(storage, AndroidSchedulers.mainThread());
+
+        return new EditExpenseController(operations);
     }
 }
